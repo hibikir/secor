@@ -104,11 +104,8 @@ public class KafkaClient {
                                                   kafka.api.OffsetRequest.CurrentVersion(),
                                                   clientName);
         OffsetResponse response = consumer.getOffsetsBefore(request);
-
-        if (response.hasError()) {
-            ErrorMapping.maybeThrowException(response.errorCode(topicPartition.getTopic(),
+        ErrorMapping.maybeThrowException(response.errorCode(topicPartition.getTopic(),
                             topicPartition.getPartition()));
-        }
         long[] offsets = response.offsets(topicPartition.getTopic(),
                 topicPartition.getPartition());
         return offsets[0] - 1;
@@ -125,11 +122,8 @@ public class KafkaClient {
                           MAX_MESSAGE_SIZE_BYTES)
                 .build();
         FetchResponse response = consumer.fetch(request);
-        if (response.hasError()) {
-            consumer.close();
-            ErrorMapping.maybeThrowException(response.errorCode(topicPartition.getTopic(),
-                    topicPartition.getPartition()));
-        }
+        ErrorMapping.maybeThrowException(response.errorCode(topicPartition.getTopic(),
+                topicPartition.getPartition()));
         MessageAndOffset messageAndOffset = response.messageSet(
                 topicPartition.getTopic(), topicPartition.getPartition()).iterator().next();
         byte[] keyBytes = null;
