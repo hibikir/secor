@@ -20,6 +20,9 @@ import com.google.common.net.HostAndPort;
 import com.pinterest.secor.message.Message;
 import kafka.api.FetchRequestBuilder;
 import kafka.api.PartitionOffsetRequestInfo;
+import kafka.common.ErrorMapping;
+import kafka.common.LeaderNotAvailableException;
+import kafka.common.OffsetOutOfRangeException;
 import kafka.common.TopicAndPartition;
 import kafka.javaapi.FetchResponse;
 import kafka.javaapi.OffsetRequest;
@@ -82,7 +85,7 @@ public class KafkaClient {
                 consumer.close();
             }
         }
-        return null;
+        throw new LeaderNotAvailableException("unable to find leader");
     }
 
     private static String getClientName(TopicPartition topicPartition) {
@@ -103,8 +106,8 @@ public class KafkaClient {
         OffsetResponse response = consumer.getOffsetsBefore(request);
 
         if (response.hasError()) {
-            throw new RuntimeException("Error fetching offset data. Reason: " +
-                    response.errorCode(topicPartition.getTopic(), topicPartition.getPartition()));
+            ErrorMapping.maybeThrowException(response.errorCode(topicPartition.getTopic(),
+                            topicPartition.getPartition()));
         }
         long[] offsets = response.offsets(topicPartition.getTopic(),
                 topicPartition.getPartition());
@@ -124,8 +127,8 @@ public class KafkaClient {
         FetchResponse response = consumer.fetch(request);
         if (response.hasError()) {
             consumer.close();
-            throw new RuntimeException("Error fetching offset data. Reason: " +
-                    response.errorCode(topicPartition.getTopic(), topicPartition.getPartition()));
+            ErrorMapping.maybeThrowException(response.errorCode(topicPartition.getTopic(),
+                    topicPartition.getPartition()));
         }
         MessageAndOffset messageAndOffset = response.messageSet(
                 topicPartition.getTopic(), topicPartition.getPartition()).iterator().next();
@@ -189,6 +192,10 @@ public class KafkaClient {
                 return null;
             }
             return getMessage(topicPartition, lastOffset, consumer);
+        } catch(OffsetOutOfRangeException e) {
+            return null;
+        } catch(LeaderNotAvailableException e){
+            return null;
         } finally {
             if (consumer != null) {
                 consumer.close();
@@ -205,6 +212,10 @@ public class KafkaClient {
             }
             consumer = createConsumer(topicPartition);
             return getMessage(topicPartition, committedOffset, consumer);
+        } catch(OffsetOutOfRangeException e){
+            return null;
+        } catch(LeaderNotAvailableException e){
+            return null;
         } finally {
             if (consumer != null) {
                 consumer.close();
