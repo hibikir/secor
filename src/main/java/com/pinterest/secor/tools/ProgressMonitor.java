@@ -16,6 +16,7 @@
  */
 package com.pinterest.secor.tools;
 
+import com.google.api.client.repackaged.org.apache.commons.codec.binary.StringUtils;
 import com.google.common.base.Joiner;
 import com.google.common.base.Strings;
 import com.google.common.collect.ImmutableMap;
@@ -132,15 +133,19 @@ public class ProgressMonitor {
         LOG.info("Stats: {}", JSONArray.toJSONString(stats));
 
         // if there is a valid openTSDB port configured export to openTSDB
-        if (mConfig.getTsdbHostport() != null && !mConfig.getTsdbHostport().isEmpty()) {
+        if (!Strings.isNullOrEmpty(mConfig.getTsdbHostport())) {
             for (Stat stat : stats) {
                 exportToTsdb(stat);
             }
         }
 
-        // if there is a valid statsD port configured export to statsD
-        if (mConfig.getStatsDHostPort() != null && !mConfig.getStatsDHostPort().isEmpty()) {
-            exportToStatsD(stats);
+        if (!Strings.isNullOrEmpty(mConfig.getStatsDHostPort())) {
+            if(mConfig.getUseTags() ) {
+                exportToDatadog(stats);
+            }
+            else {
+                exportToStatsD(stats);
+            }
         }
     }
 
@@ -164,6 +169,26 @@ public class ProgressMonitor {
                     .append(tags.get(Stat.STAT_KEYS.PARTITION.getName()))
                     .toString();
             client.recordGaugeValue(aspect, Long.parseLong((String)stat.get(Stat.STAT_KEYS.VALUE.getName())));
+        }
+    }
+
+    /**
+     * Helper to publish stats to statsD client
+     */
+    private void exportToDatadog(List<Stat> stats) {
+        HostAndPort hostPort = HostAndPort.fromString(mConfig.getStatsDHostPort());
+
+        // group stats by kafka group
+        NonBlockingStatsDClient client = new NonBlockingStatsDClient(mConfig.getKafkaGroup(),
+                hostPort.getHostText(), hostPort.getPort());
+
+        for (Stat stat : stats) {
+            @SuppressWarnings("unchecked")
+            Map<String, String> tags = (Map<String, String>) stat.get(Stat.STAT_KEYS.TAGS.getName());
+            client.recordGaugeValue(stat.get(Stat.STAT_KEYS.METRIC.getName()).toString(),
+                    Long.parseLong((String)stat.get(Stat.STAT_KEYS.VALUE.getName())),
+                    "topic:"+tags.get(Stat.STAT_KEYS.TOPIC.getName()),
+                    "partition:"+tags.get(Stat.STAT_KEYS.PARTITION.getName()));
         }
     }
 

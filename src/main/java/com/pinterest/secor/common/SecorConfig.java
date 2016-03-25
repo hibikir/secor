@@ -306,9 +306,9 @@ public class SecorConfig {
         return getString("tsdb.hostport");
     }
 
-    public String getStatsDHostPort() {
-        return getString("statsd.hostport");
-    }
+    public String getStatsDHostPort() { return getString("statsd.hostport"); }
+
+    public Boolean getUseTags() { return getBoolean("statsd.useTags",false); }
 
     public String getMonitoringBlacklistTopics() {
         return getString("monitoring.blacklist.topics");

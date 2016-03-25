@@ -104,7 +104,7 @@
         <dependency>
             <groupId>org.apache.kafka</groupId>
             <artifactId>kafka_2.10</artifactId>
-            <version>0.8.2.1</version>
+            <version>0.9.0.1</version>
             <exclusions>
                 <exclusion>
                     <groupId>org.slf4j</groupId>
@@ -254,9 +254,9 @@
             </exclusions>
         </dependency>
         <dependency>
-            <groupId>com.timgroup</groupId>
-            <artifactId>java-statsd-client</artifactId>
-            <version>3.0.2</version>
+            <groupId>com.indeed</groupId>
+            <artifactId>java-dogstatsd-client</artifactId>
+            <version>2.0.12</version>
         </dependency>
         <dependency>
             <groupId>com.google.apis</groupId>
